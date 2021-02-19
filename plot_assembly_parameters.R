@@ -8,9 +8,7 @@ rm(list = ls())
 seq_success <- read_tsv(file = "Report_Full.tsv")
 seq_success$batch <- factor(seq_success$batch, 
                             levels = c("b0","b1", "b2", "b3_b5", "b4", 
-                                       "b7", "b8", "b9", "b10"))
-#Gemma: why is b11 not included here? ####
-
+                                       "b7", "b8", "b9", "b10", "b11"))
 
 names(seq_success) <- c("libid", "batch", "phylum", "countgroup", "taxon", "taxid", 
                         "read_length", "reads_max", "Reads median seq:", 
@@ -33,9 +31,15 @@ seq_success %>%
   filter(bag == "bag2",
          !(phylum %in% c("Chordata", "CONTROL")),
          total_reads > 5e+06) ->
-  deeper_sequenced
+  bag2
 
-# # Fix Acari ####
+# seq_success %>%
+#   filter(bag == "bag2",
+#          !(phylum %in% c("Chordata", "CONTROL")),
+#          total_reads > 5e+06) ->
+#   deeper_sequenced
+
+# Fix Acari ####
 # deeper_sequenced %>%
 #   filter(countgroup == "Acari") %>%
 #   group_by(taxon) %>%
@@ -54,12 +58,6 @@ seq_success %>%
 # Acari[8,6] <- c("Oribatida")
 # Acari[13,5] <- c("Sarcoptiformes")
 # Acari[13,6] <- c("Oribatida")
-# 
-# Gemma: Tyrophagus ####
-# Gemma: it could not find Tyrophagus in the itis database, but Tyrophagus is also Sarcoptiformes > Oribatida ? So we should add: 
-# Gemma: Acari[2,5] <- c("Sarcoptiformes")
-# Gemma: Acari[2,6] <- c("Oribatida")
-# 
 # 
 # save(file = "Acari_orders.Rdata", Acari)
 load(file = "Acari_orders.Rdata")
@@ -86,10 +84,6 @@ deeper_sequenced %>%
                 N50, human_reads, Busco_M) %>%
   filter(!(countgroup_2 %in% very_few)) ->
   params_to_plot
-
-# Gemma: Save params_to_plot for PCA to be a separate script ####
-# save(file = "params_to_plot.Rdata", params_to_plot)
-
 
 # Histograms
 params_to_plot %>%

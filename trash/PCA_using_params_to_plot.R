@@ -123,7 +123,7 @@ pc <- prcomp(pca_df[,c(1:4)], center = TRUE, scale = TRUE)
 
 
 ##group the rows by the taxonomic group (x9)
-by_taxgroup <- params_to_plot %>% group_by(countgroup_2)
+by_taxgroup <- params_to_plot_GC %>% group_by(countgroup_2)
 by_taxgroup
 ungroup(params_to_plot)
 
