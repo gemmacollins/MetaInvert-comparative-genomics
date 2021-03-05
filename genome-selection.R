@@ -15,23 +15,23 @@ library(Manu)
 rm(list = ls())
 #
 # Read data and create bag2 from the tsv file ####
-seq_success <- read_tsv(file = "Report_Full.tsv")
+full_view <- read_tsv(file = "full_view.tsv")
 
-names(seq_success) <- c("libid", "batch", "phylum", "countgroup", "taxon", "taxid","sample_number", 
-                        "read_length", "reads_max", "Reads median seq:", 
-                        "Reads min seq:", "Reads N 50:", "total_reads", "total_bases",
+names(full_view) <- c("libid", "batch", "phylum", "countgroup", "taxon", "taxid","sample_number", 
+                      "locality_number", "sample_provider", "read_length", "reads_max", "Reads_median_seq:", 
+                        "Reads_min_seq:", "Reads_N_50:", "total_reads", "total_bases","perc_reads_human", "bag",
                         "n_contigs", "largest_contig", "assembly_length", "GC", 
-                        "N50", "N75", "L50", "L75", "bag", "human_reads",
-                        "busco_lineage", "Busco_C", "Busco_S", "Busco_D", "Busco_F",
+                        "N50", "N75", "L50", "L75", "busco_lineage", "Busco_C", "Busco_S", "Busco_D", "Busco_F",
                         "Busco_M", "Busco_set_size", "mode_cov_dist", "mapped_bases", 
-                        "genome_size", "COI_Order", "COI_Genus", "COI_Species")
+                        "genome_size_est", "co1_length", "co1_Superkingdom", "co1_Kingdom", "co1_Phylum", "co1_Class",
+                        "co1_Order", "co1_Genus", "co1_Species", "ncbi_lineage") 
 
 # Select only bag2, no controls, otherwise unfiltered
-seq_success %>%
+full_view %>%
   filter(bag == "bag2",
          !(phylum %in% c("Chordata", "CONTROL"))) ->
   bag2
-  
+#  
 # Fix Acari ####
 bag2 %>%
   filter(countgroup == "Acari") %>%
@@ -80,54 +80,74 @@ rm(Acari, oribatids) # Clean up
 write.table(bag2, "bag2.csv", sep = ",", col.names=NA)
 save(file = "bag2.Rdata", bag2)
 # Tidy up data #####
-load(file = "bag2.Rdata")
+#load(file = "bag2.Rdata")
 
 bag2 %>%
-  dplyr::select(libid, batch, phylum, countgroup_2, taxon, taxid, Busco_C, Busco_F,#read_length, total_bases, 
-                total_reads, n_contigs, assembly_length, GC,
-                N50, human_reads, Busco_M, genome_size) %>%
-  #filter(total_reads > 1e+06)%>%
-  filter_all(all_vars(!is.infinite(.))) %>%
+  dplyr::select(phylum, countgroup, taxon,
+               read_length, total_reads, total_bases,perc_reads_human, 
+                n_contigs, largest_contig, assembly_length, GC, 
+                N50, N75, L50, L75, Busco_C, Busco_D, Busco_F,
+              Busco_M, mapped_bases, genome_size_est, co1_length) %>%
+  #filter(total_reads > 1.6e+07)%>%
+  #filter_all(all_vars(!is.infinite(.))) %>%
   na.omit() -> 
   bag2_selection
 
-dim(bag2_selection)
+# Miki's original selection (libid, batch, phylum, countgroup, taxon, taxid, 
+#read_length, n_contigs, assembly_length, GC, N50, human_reads, Busco_M, genome_size) %>%
 
 #write.table(bag2_selection, "bag2_selection.csv", sep = ",", col.names=NA)
 
 ## Manu colour palette (NZ native birds) ####
 names(manu_palettes)
-colourmanu <- get_pal("Hoiho")
+colourmanu <- get_pal("Takahe")
 print_pal(colourmanu)
 #"Hihi" "Hoiho" "Kaka" "Kakapo" "Kakariki" "Kea" "Kereru" "Kereru_orig" 
 #"Korimako" Korora" "Kotare" "Putangitangi" "Takahe" "Takapu" "Titipounamu"
 #"Tui" "Pepetuna" "Pohutukawa" "Gloomy_Nudi"
-
 #scale_color_manual(values = colorRampPalette(Pohutukawa)(16)) +
 #scale_color_gradient(low=get_pal("Takahe")[1], high = get_pal("Takahe")[2])+
 
 # Explore the data further with some basic visual plots ####
 ## Plot relationships between two variables
-ggplot(bag2_selection) + geom_point(aes(x=total_reads, y=n_contigs, col=countgroup_2), size = 2)+
-  scale_color_manual(values = colorRampPalette(colourmanu)(9)) +
-  ggtitle("bag2_25-02-2021")
+
+ggplot(bag2_selection) + geom_point(aes(x=log(N50), y=Busco_C, col=countgroup), size = 2)+
+  scale_color_manual(values = colorRampPalette(get_pal("Takahe"))(15))
+#  expand_limits(x=0,y=0)+
+  #ggtitle("bag2_05-03-2021_>1.6e+07")
+
+ggplot(bag2_selection) + 
+  geom_point(aes(x=n_contigs, y=log(N50), col=Busco_M), size = 2)+
+  # scale_x_continuous(breaks=,,1900)+
+  # scale_y_continuous(breaks=,,55)+
+  scale_color_gradient2(high=get_pal("Takahe")[1], mid = get_pal("Takahe")[2])
+#  ggtitle("bag2_25-02-2021_>1.6e+07")
+
 
 ## Subset bag2_selected_omit by taxonomic group
-unique(bag2_selection$countgroup_2)
+unique(bag2_selection$countgroup)
 
 # "Collembola" "Oribatida" "Enchytraeidae" "Acari" "Myriapoda" 
-# "Lumbricina" "Lumbricidae"  "Nematoda"  "Diplopoda" "Chilopoda"
+# "Lumbricina" "Nematoda"  "Diplopoda" "Chilopoda"
 
-## Taxa removed due to NAs "Gamasina"  "Tardigrada" "Symphyla" "Pauropoda" "Isopoda" "Diplura"
+## Taxa removed due to NAs "Gamasina"  "Lumbricidae"  "Tardigrada" "Symphyla" "Pauropoda" "Isopoda" "Diplura"
+ggplot(bag2_selection) + 
+  geom_point(aes(x=log(N50), y=Busco_C, col=Busco_M), size = 2)+
+  # scale_x_continuous(breaks=,,1900)+
+  # scale_y_continuous(breaks=,,55)+
+  facet_wrap(~countgroup)+
+  scale_color_gradient2(high=colourmanu[1], mid = colourmanu[2])+
+  ggtitle("bag2_05-03-2021")
 
-Taxon <- "Collembola"
+Taxon <- "Oribatida"
 
 ggplot(subset(bag2_selection, countgroup_2==Taxon)) + 
   geom_point(aes(x=total_reads, y=n_contigs, col=Busco_M), size = 2)+
   scale_color_gradient2(mid=colourmanu[1], high = colourmanu[4])+
-  ggtitle("bag2_25-02-2021")
+  #scale_x_continuous(breaks=,,16000000)+
+  ggtitle("Oribatida")
 
-ggplot(subset(bag2_seleciton_omit, countgroup_2==Taxon)) + 
+ggplot(subset(bag2_selection, countgroup_2==Taxon)) + 
   geom_point(aes(x=log(N50), y=Busco_C, col=assembly_length), size = 2)+
   scale_color_gradient2(mid = colourmanu[4], high = colourmanu[1])+
   ggtitle("bag2_25-02-2021")
@@ -142,11 +162,11 @@ ggplot(bag2_selection, aes(x = total_reads, y = n_contigs, col=Busco_M))+
   ggtitle("bag2_25-02-2021")
 
 ## to do a box plot
-ggplot(bag2_selection, aes(x=countgroup_2, y=log(N50), fill=countgroup_2))+
+ggplot(bag2_selection, aes(x=countgroup, y=log(N50), fill=countgroup))+
+  geom_point()+
   geom_boxplot()+
-  scale_fill_manual(values = colorRampPalette(colourmanu)(9)) +
+  scale_fill_manual(values = colorRampPalette(colourmanu)(15)) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1))
-
 
 # Simple plots for each parameter ####
 bag2_selection %>%
